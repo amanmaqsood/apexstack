@@ -47,7 +47,7 @@ function useMotionStage<T extends HTMLElement>(threshold = 0.2) {
       const rect = node.getBoundingClientRect();
       const vh = window.innerHeight || 1;
       const progress = Math.max(0, Math.min(1, (vh - rect.top) / (vh + rect.height)));
-      const enter = Math.max(0, Math.min(1, (progress - 0.08) / 0.43));
+      const enter = Math.max(0, Math.min(1, (progress - 0.05) / 0.35));
       const exit = Math.max(0, Math.min(1, (progress - 0.78) / 0.2));
       node.style.setProperty("--motion", String(progress));
       node.style.setProperty("--enter", String(enter));
@@ -126,14 +126,14 @@ function DraggableTile({ className, children }: { className: string; children: R
 function BootScreen({ done }: { done: () => void }) {
   const [phase, setPhase] = useState(0);
   useEffect(() => {
-    const a = window.setTimeout(() => setPhase(1), 180);
-    const b = window.setTimeout(() => setPhase(2), 1050);
-    const c = window.setTimeout(done, 2050);
+    const a = window.setTimeout(() => setPhase(1), 620);
+    const b = window.setTimeout(() => setPhase(2), 1820);
+    const c = window.setTimeout(done, 2280);
     return () => [a, b, c].forEach(window.clearTimeout);
   }, [done]);
   return (
     <div className={`boot-screen phase-${phase}`} aria-hidden="true">
-      <div className="boot-mark"><ScrambleText text="razorpay/ai" active={phase > 0} /><span className="boot-cursor" /></div>
+      <div className="boot-mark"><ScrambleText key={phase} text={phase === 0 ? "razorpol@~$" : "razorpay/ai"} active={phase > 0} /><span className="boot-cursor" /></div>
     </div>
   );
 }
@@ -188,7 +188,7 @@ function AsciiImage({ src, color = "#1b4dff", cols = 92, className = "", inverse
   return <canvas ref={canvasRef} className={className} aria-hidden="true" />;
 }
 
-function PixelDissolveImage({ src, className = "", cols = 72 }: { src: string; className?: string; cols?: number }) {
+function PixelDissolveImage({ src, className = "", cols = 132 }: { src: string; className?: string; cols?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -303,7 +303,7 @@ function Hero({ ready }: { ready: boolean }) {
         <img className="hero-object coffee-shadow" src="/assets/coffee-shadow.webp" alt="" /><img className="hero-object desk-coffee" src="/assets/coffee.webp" alt="" /><img className="hero-object desk-ipad" src="/assets/right-tablet.webp" alt="" />
         <img className="hero-object chat-cup-shadow" src="/assets/chat-gpt-cup-shadow.webp" alt="" /><img className="hero-object cup" src="/assets/chat-gpt-cup.webp" alt="" /><img className="hero-object mug-shadow" src="/assets/coffee-mug-shadow.webp" alt="" /><img className="hero-object coffee-mug" src="/assets/coffee-mug.webp" alt="" />
         <PixelDissolveImage src="/assets/person-1.webp" className="hero-pixel pixel-one" /><PixelDissolveImage src="/assets/person-2.webp" className="hero-pixel pixel-two" /><PixelDissolveImage src="/assets/person-3.webp" className="hero-pixel pixel-three" />
-        <AsciiImage src="/assets/person-1.webp" cols={60} color="#9aa7b9" className="hero-ascii hero-ascii-one" /><AsciiImage src="/assets/person-2.webp" cols={52} color="#91a5c8" className="hero-ascii hero-ascii-two" /><AsciiImage src="/assets/person-3.webp" cols={48} color="#8aa2c9" className="hero-ascii hero-ascii-three" />
+        <AsciiImage src="/assets/person-1.webp" cols={92} color="#9aa7b9" className="hero-ascii hero-ascii-one" /><AsciiImage src="/assets/person-2.webp" cols={82} color="#91a5c8" className="hero-ascii hero-ascii-two" /><AsciiImage src="/assets/person-3.webp" cols={74} color="#8aa2c9" className="hero-ascii hero-ascii-three" />
         <button className="person-hover-zone zone-one" type="button" aria-label="Inspect builder one" onPointerEnter={() => setHoveredPerson(1)} onPointerLeave={() => setHoveredPerson(0)} />
         <button className="person-hover-zone zone-two" type="button" aria-label="Inspect builder two" onPointerEnter={() => setHoveredPerson(2)} onPointerLeave={() => setHoveredPerson(0)} />
         <button className="person-hover-zone zone-three" type="button" aria-label="Inspect builder three" onPointerEnter={() => setHoveredPerson(3)} onPointerLeave={() => setHoveredPerson(0)} />
@@ -504,7 +504,7 @@ function Eligibility() {
     <section ref={ref} id="eligibility" className={`eligibility ${visible ? "visible" : ""}`}>
       <div className="eligibility-stage">
         <canvas className="eligibility-field" aria-hidden="true" />
-        <img className="eligibility-reference" src="/assets/eligibility-desktop.png" alt="" aria-hidden="true" />
+        <img className="eligibility-reference" src="/assets/eligibility-desktop-1470.png" alt="" aria-hidden="true" />
         <AsciiImage src="/assets/person-2.webp" color="#164cff" cols={164} className="eligibility-ascii" />
         <svg className="feature-lines" viewBox="0 0 1440 750" preserveAspectRatio="none" aria-hidden="true">
           <polyline points="154,354 496,354 566,430" /><polyline points="792,152 1045,185 1240,185" /><polyline points="752,302 920,386 1245,386" />
@@ -555,9 +555,14 @@ function Process() {
 }
 
 function Wins() {
-  const [active, setActive] = useState(2);
+  const [active, setActive] = useState(1);
   const [ref, visible] = useMotionStage<HTMLElement>(0.12);
   const move = (delta: number) => setActive((active + delta + wins.length) % wins.length);
+  useEffect(() => {
+    if (!visible) return;
+    const timer = window.setInterval(() => setActive((value) => (value + 1) % wins.length), 6500);
+    return () => window.clearInterval(timer);
+  }, [visible]);
   const previous = (active - 1 + wins.length) % wins.length;
   const next = (active + 1) % wins.length;
   return (
@@ -585,7 +590,7 @@ function DraggableChair({ className }: { className: string }) {
 
 function OtherRoles() {
   const [ref] = useMotionStage<HTMLElement>(0.1);
-  return <section ref={ref} className="other-roles"><div className="roles-bg" /><DraggableChair className="chair-zero" /><DraggableChair className="chair-one" /><DraggableChair className="chair-two" /><DraggableChair className="chair-three" /><DraggableChair className="chair-four" /><h2>Looking for Other Roles?</h2><a href="https://razorpay.com/careers/" target="_blank" rel="noreferrer">check out our careers page. ↗</a><span className="drag-note">DRAG TO EXPLORE</span></section>;
+  return <section ref={ref} className="other-roles"><div className="roles-bg" /><img className="roles-reference" src="/assets/roles-desktop-1470.png" alt="" aria-hidden="true" /><DraggableChair className="chair-zero" /><DraggableChair className="chair-one" /><DraggableChair className="chair-two" /><DraggableChair className="chair-three" /><DraggableChair className="chair-four" /><h2>Looking for Other Roles?</h2><a href="https://razorpay.com/careers/" target="_blank" rel="noreferrer">check out our careers page. ↗</a><span className="drag-note">DRAG TO EXPLORE</span></section>;
 }
 
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; color: string };
