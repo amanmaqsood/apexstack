@@ -500,11 +500,19 @@ function VoiceModal({ close }: { close: () => void }) {
 function Eligibility() {
   const [ref, visible] = useMotionStage<HTMLElement>(0.18);
   const [modal, setModal] = useState<"head" | "eyes" | "mouth" | null>(null);
+  const [guide, setGuide] = useState(0);
+  useEffect(() => {
+    if (!visible || modal) return;
+    const timer = window.setInterval(() => setGuide((value) => (value + 1) % 3), 1400);
+    return () => window.clearInterval(timer);
+  }, [modal, visible]);
   return (
     <section ref={ref} id="eligibility" className={`eligibility ${visible ? "visible" : ""}`}>
       <div className="eligibility-stage">
         <canvas className="eligibility-field" aria-hidden="true" />
         <img className="eligibility-reference" src="/assets/eligibility-desktop-1470.png" alt="" aria-hidden="true" />
+        <span className="static-pulse-mask" aria-hidden="true" />
+        <span className={`guide-pulse guide-${guide}`} aria-hidden="true">CLICK<i /><i /><i /></span>
         <AsciiImage src="/assets/person-2.webp" color="#164cff" cols={164} className="eligibility-ascii" />
         <svg className="feature-lines" viewBox="0 0 1440 750" preserveAspectRatio="none" aria-hidden="true">
           <polyline points="154,354 496,354 566,430" /><polyline points="792,152 1045,185 1240,185" /><polyline points="752,302 920,386 1245,386" />
@@ -555,14 +563,18 @@ function Process() {
 }
 
 function Wins() {
-  const [active, setActive] = useState(1);
+  const [active, setActive] = useState(0);
+  const [timerEpoch, setTimerEpoch] = useState(0);
   const [ref, visible] = useMotionStage<HTMLElement>(0.12);
-  const move = (delta: number) => setActive((active + delta + wins.length) % wins.length);
+  const move = (delta: number) => {
+    setActive((value) => (value + delta + wins.length) % wins.length);
+    setTimerEpoch((value) => value + 1);
+  };
   useEffect(() => {
     if (!visible) return;
     const timer = window.setInterval(() => setActive((value) => (value + 1) % wins.length), 6500);
     return () => window.clearInterval(timer);
-  }, [visible]);
+  }, [timerEpoch, visible]);
   const previous = (active - 1 + wins.length) % wins.length;
   const next = (active + 1) % wins.length;
   return (
@@ -572,6 +584,7 @@ function Wins() {
         <img className="neighbor-card neighbor-left" src={wins[previous].image} alt="" /><img className="neighbor-card neighbor-right" src={wins[next].image} alt="" />
         <article className="win-slide active" key={wins[active].brand}><img src={wins[active].image} alt="" /><div className="win-copy"><p>{wins[active].brand}</p><h3>{wins[active].headline}</h3>{wins[active].href && <a href={wins[active].href} target="_blank" rel="noreferrer">Know More</a>}</div></article>
         <button className="arrow left" type="button" onClick={() => move(-1)} aria-label="Previous AI win">‹</button><button className="arrow right" type="button" onClick={() => move(1)} aria-label="Next AI win">›</button>
+        <div className="carousel-dots" aria-label="AI wins slides">{wins.map((win, index) => <button className={index === active ? "active" : ""} type="button" key={win.brand} onClick={() => { setActive(index); setTimerEpoch((value) => value + 1); }} aria-label={`Go to card ${index + 1}`} />)}</div>
       </div>
     </section>
   );
@@ -608,13 +621,16 @@ function ArcadeGame({ running, setRunning }: { running: boolean; setRunning: (va
     let paddleX = canvas.clientWidth * 0.5;
     const particles: Particle[] = [];
     const powerUps: PowerUp[] = [];
-    let bricks: { x: number; w: number; alive: boolean; color: string }[] = [];
+    let bricks: { x: number; y: number; w: number; h: number; row: number; alive: boolean; color: string }[] = [];
     const colors = ["#ff4260", "#ff9838", "#e1dc43", "#6fe36f", "#42d8c6", "#6c89ff", "#c850e8"];
     const makeBall = (x: number, y: number, vx: number, vy: number, color = "#fff"): GameBall => ({ x, y, vx, vy, color, trail: [] });
     const resize = () => {
       const dpr = Math.min(2, window.devicePixelRatio || 1); const w = canvas.clientWidth; const h = canvas.clientHeight;
       canvas.width = w * dpr; canvas.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      bricks = Array.from({ length: 17 }, (_, i) => ({ x: i * (w / 17) + 1, w: w / 17 - 2, alive: true, color: colors[i % colors.length] }));
+      bricks = Array.from({ length: 34 }, (_, i) => {
+        const row = Math.floor(i / 17); const column = i % 17;
+        return { x: column * (w / 17) + 1, y: h - 82 + row * 37, w: w / 17 - 2, h: 35, row, alive: true, color: colors[(column + row * 2) % colors.length] };
+      });
       balls = [makeBall(w * .5, h * .49, 245, 310)]; paddleX = w * 0.5;
     };
     const burst = (x: number, y: number, color: string) => { for (let i = 0; i < 20; i += 1) particles.push({ x, y, vx: (Math.random() - 0.5) * 280, vy: (Math.random() - 0.5) * 260, life: 1, color }); };
@@ -654,9 +670,9 @@ function ArcadeGame({ running, setRunning }: { running: boolean; setRunning: (va
             ball.vy = -Math.abs(ball.vy) * 1.018; ball.vx += (ball.x - paddleX) * 2.35; score += 1; hits += 1; ball.color = fever ? colors[hits % colors.length] : "#fff"; burst(ball.x, ball.y, ball.color);
           }
           powerUps.forEach((power) => { if (power.life > 0 && Math.hypot(power.x - ball.x, power.y - ball.y) < 24) applyPower(power, ball); });
-          if (ball.y > h - 44) {
-            const brick = bricks.find((item) => item.alive && ball.x > item.x && ball.x < item.x + item.w);
-            if (brick) { brick.alive = false; ball.vy = -Math.abs(ball.vy); score += 1; hits += 1; burst(ball.x, h - 38, brick.color); }
+          if (ball.y > h - 90) {
+            const brick = bricks.find((item) => item.alive && ball.x > item.x && ball.x < item.x + item.w && ball.y > item.y - 8 && ball.y < item.y + item.h + 8);
+            if (brick) { brick.alive = false; ball.vy = -Math.abs(ball.vy); score += 1; hits += 1; burst(ball.x, brick.y, brick.color); }
             else if (ball.y > h + 24) { ball.x = paddleX; ball.y = paddleY + 40; ball.vx = (Math.random() > .5 ? 1 : -1) * (245 + hits * 3); ball.vy = 315; }
           }
         });
@@ -665,7 +681,7 @@ function ArcadeGame({ running, setRunning }: { running: boolean; setRunning: (va
       }
       if (running) { ctx.strokeStyle = fever ? colors[hits % colors.length] : "#ececec"; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(paddleX - (fever ? 96 : 74), h * .53); ctx.lineTo(paddleX + (fever ? 96 : 74), h * .53); ctx.stroke(); }
       const idleGradient = ctx.createLinearGradient(0, h - 81, 0, h - 50); idleGradient.addColorStop(0, "#f0f2f6"); idleGradient.addColorStop(.22, "#d7dae0"); idleGradient.addColorStop(1, "#bfc2c8");
-      bricks.forEach((brick) => { if (brick.alive) { ctx.fillStyle = fever ? brick.color : idleGradient; ctx.fillRect(brick.x, h - 49, brick.w, 34); ctx.strokeStyle = "rgba(0,0,0,.72)"; ctx.lineWidth = 2; ctx.strokeRect(brick.x, h - 49, brick.w, 34); } });
+      bricks.forEach((brick) => { if (brick.alive) { ctx.fillStyle = fever ? brick.color : brick.row === 0 ? idleGradient : "#c7c7c7"; ctx.fillRect(brick.x, brick.y, brick.w, brick.h); ctx.strokeStyle = "rgba(0,0,0,.78)"; ctx.lineWidth = 2; ctx.strokeRect(brick.x, brick.y, brick.w, brick.h); } });
       if (running) balls.forEach((ball) => { ball.trail.forEach((point, index) => { ctx.beginPath(); ctx.fillStyle = fever ? `${ball.color}${Math.max(12, 62 - index * 5).toString(16)}` : `rgba(255,255,255,${Math.max(.03,.22-index*.018)})`; ctx.arc(point.x, point.y, Math.max(1.5, 6 - index * .38), 0, Math.PI * 2); ctx.fill(); }); ctx.beginPath(); ctx.shadowBlur = fever ? 30 : 11; ctx.shadowColor = ball.color; ctx.fillStyle = ball.color; ctx.arc(ball.x, ball.y, fever ? 8 : 7, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; });
       powerUps.forEach((power) => { if (power.life <= 0) return; ctx.fillStyle = power.color; ctx.fillRect(power.x - 19, power.y - 6, 38, 12); ctx.fillStyle = "#071008"; ctx.font = "700 7px ui-monospace,monospace"; ctx.textAlign = "center"; ctx.fillText(power.label, power.x, power.y + 3); ctx.textAlign = "left"; });
       if (laserClock > 0) { ctx.strokeStyle = "rgba(255,55,70,.72)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(paddleX, h * .53); ctx.lineTo(paddleX, h - 49); ctx.stroke(); }

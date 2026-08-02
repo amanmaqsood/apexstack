@@ -400,6 +400,39 @@ button:focus-visible,a:focus-visible { outline:1px solid #fff; outline-offset:4p
   .mind-mouth.voice-active .modal-close,.mind-mouth.voice-active .voice-mute{opacity:0}
 }
 
+/* Interaction choreography recorded from the production experience. */
+.static-pulse-mask,.guide-pulse{display:none}
+
+@media (min-width:901px){
+  .ready .hero-scene.hover-person-1 .person-one,
+  .ready .hero-scene.hover-person-2 .person-two,
+  .ready .hero-scene.hover-person-3 .person-three{opacity:.08;transition:opacity .26s ease}
+  .ready .hero-scene.hover-person-1 .hero-ascii-one,
+  .ready .hero-scene.hover-person-2 .hero-ascii-two,
+  .ready .hero-scene.hover-person-3 .hero-ascii-three{opacity:.94;transition:opacity .22s ease;filter:drop-shadow(0 0 8px rgba(180,195,225,.18))}
+  .hero-scene.hover-person-1 .pixel-one,
+  .hero-scene.hover-person-2 .pixel-two,
+  .hero-scene.hover-person-3 .pixel-three{opacity:.16;animation:pixelJitter .48s steps(4) infinite}
+
+  .static-pulse-mask{display:block;position:absolute;z-index:7;left:calc(49.46% - 27px);top:calc(41.1% - 27px);width:54px;height:54px;pointer-events:none;border-radius:50%;background-image:url('/assets/eligibility-desktop-1470.png');background-size:100vw 100vh;background-position:calc(-49.46vw + 82px) calc(-41.1vh + 27px);box-shadow:0 0 11px 9px rgba(0,0,0,.34)}
+  .guide-pulse{display:grid;position:absolute;z-index:22;left:50.9%;top:19.4%;width:46px;height:46px;place-items:center;transform:translate(-50%,-50%);border-radius:50%;color:#06130a;background:#48b56b;font:7px/1 ui-monospace,monospace;pointer-events:none;transition:left .46s cubic-bezier(.22,1,.36,1),top .46s cubic-bezier(.22,1,.36,1);box-shadow:0 0 18px rgba(53,198,102,.22)}
+  .guide-pulse i{position:absolute;inset:-13px;border:1px solid rgba(44,190,95,.72);border-radius:50%;animation:guideRing 1.4s ease-out infinite}
+  .guide-pulse i:nth-child(2){inset:-24px;animation-delay:.18s}.guide-pulse i:nth-child(3){inset:-36px;animation-delay:.36s}
+  .guide-pulse.guide-1{left:49.46%;top:41.1%}.guide-pulse.guide-2{left:45.45%;top:60.8%}
+  .eligibility .feature-hit::after,.eligibility .eye-hit::after{opacity:0!important;animation:none!important}
+}
+
+.screen-click{top:42%}
+.channel-0 .screen-click{opacity:.72;animation:monitorPulse 1.55s ease-out infinite}
+.channel-0 .screen-click::before,.channel-0 .screen-click::after{content:"";position:absolute;inset:-12px;border:1px solid rgba(45,167,79,.42);border-radius:50%}
+.channel-0 .screen-click::after{inset:-24px;opacity:.55}
+.screen-video{opacity:.72;filter:grayscale(1) sepia(.42) saturate(2.1) hue-rotate(72deg) brightness(.82) contrast(1.16);mix-blend-mode:screen}
+.screen-noise{opacity:.1}.channel-0 .screen-noise{opacity:0}
+.screen-hint,.screen-subject{display:none}
+
+@keyframes guideRing{0%{transform:scale(.7);opacity:.72}75%,100%{transform:scale(1.16);opacity:0}}
+@keyframes monitorPulse{0%{box-shadow:0 0 0 0 rgba(45,167,79,.34)}75%,100%{box-shadow:0 0 0 32px rgba(45,167,79,0)}}
+
 @media (max-width:900px){
   html{scroll-behavior:smooth}
   body{overflow-x:hidden}
