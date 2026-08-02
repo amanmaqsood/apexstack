@@ -414,34 +414,39 @@ const eyeCards = [
 ];
 
 function EyeModal({ close }: { close: () => void }) {
-  const [depth, setDepth] = useState(0);
-  const [ticks, setTicks] = useState(0);
+  const [stage, setStage] = useState(0);
   const swipe = useRef({ active: false, y: 0 });
-  useEffect(() => {
-    const timer = window.setInterval(() => setTicks((value) => value + 1), 620);
-    return () => window.clearInterval(timer);
-  }, []);
-  return <div className="mind-modal mind-eyes" role="dialog" aria-modal="true" aria-label="Through an AI builder's eyes" onWheel={(event) => setDepth((value) => value + Math.sign(event.deltaY) * .7)} onPointerDown={(event) => {
+  const lastStep = useRef(0);
+  const depth = stage * .7;
+  const moveStage = (direction: number) => setStage((value) => Math.max(0, Math.min(3, value + direction)));
+  const step = (direction: number) => {
+    const now = performance.now();
+    if (now - lastStep.current < 420) return;
+    lastStep.current = now;
+    moveStage(direction);
+  };
+  return <div className={`mind-modal mind-eyes eye-stage-${stage}`} role="dialog" aria-modal="true" aria-label="Through an AI builder's eyes" onWheel={(event) => step(Math.sign(event.deltaY))} onPointerDown={(event) => {
     if ((event.target as HTMLElement).closest("button")) return;
     swipe.current = { active: true, y: event.clientY };
     event.currentTarget.setPointerCapture(event.pointerId);
   }} onPointerMove={(event) => {
     if (!swipe.current.active) return;
     const delta = swipe.current.y - event.clientY;
-    if (Math.abs(delta) < 8) return;
+    if (Math.abs(delta) < 28) return;
     swipe.current.y = event.clientY;
-    setDepth((value) => value + delta / 52);
+    step(Math.sign(delta));
   }} onPointerUp={() => { swipe.current.active = false; }}>
     <ModalClose close={close} />
+    <img className="eye-modal-reference" src={`/assets/eye-modal-stage${stage}.png`} alt="" aria-hidden="true" />
     <div className="eye-stars" aria-hidden="true" />
     <div className="eye-card-field">{eyeCards.map((file, index) => {
       const lane = ((index * 1.35 - depth) % 8 + 8) % 8;
       const scale = .25 + lane * .105;
       const x = Math.sin(index * 2.19) * 31;
       const y = Math.cos(index * 1.47) * 24;
-      return <img key={file} src={`https://cdn.razorpay.com/static/assets/ai-builders/images/${file}`} alt="" style={{ left: `${50 + x}%`, top: `${48 + y}%`, opacity: Math.max(.16, 1 - Math.abs(4.8 - lane) * .16), transform: `translate(-50%,-50%) scale(${scale})`, zIndex: Math.round(lane * 10) }} />;
+      return <img key={file} src={`/assets/${file}`} alt="" style={{ left: `${50 + x}%`, top: `${48 + y}%`, opacity: Math.max(.16, 1 - Math.abs(4.8 - lane) * .16), transform: `translate(-50%,-50%) scale(${scale})`, zIndex: Math.round(lane * 10) }} />;
     })}</div>
-    <div className="eye-stats"><b>THROUGH MY EYES</b><span>PIXELS TO PROCESS&nbsp;&nbsp;&nbsp; {388 + ticks}</span><span>WINDOWS DETECTED&nbsp;&nbsp;&nbsp; {12 + ticks % 9}</span><span>IDEAS ANALYZED&nbsp;&nbsp;&nbsp; {1431 + ticks * 3}</span></div>
+    <div className="eye-stats"><b>THROUGH MY EYES</b><span>PIXELS TO PROCESS&nbsp;&nbsp;&nbsp; 40M</span><span>ANOMALIES DETECTED&nbsp;&nbsp;&nbsp; 14</span><span>IMAGINED INTERFACES&nbsp;&nbsp;&nbsp; 1,500</span><span>IDEAS RENDERED&nbsp;&nbsp;&nbsp; 420</span></div>
     <div className="modal-gesture eye-scroll"><b>◉</b>SCROLL</div>
   </div>;
 }
@@ -449,6 +454,7 @@ function EyeModal({ close }: { close: () => void }) {
 function VoiceModal({ close }: { close: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointer = useRef({ x: .5, y: .5 });
+  const [activated, setActivated] = useState(false);
   const [muted, setMuted] = useState(false);
   const [ticks, setTicks] = useState(0);
   useEffect(() => {
@@ -482,11 +488,12 @@ function VoiceModal({ close }: { close: () => void }) {
     resize(); window.addEventListener("resize", resize); raf = window.requestAnimationFrame(draw);
     return () => { window.cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
   }, []);
-  return <div className="mind-modal mind-mouth" role="dialog" aria-modal="true" aria-label="Inside an AI builder's words">
+  return <div className={`mind-modal mind-mouth ${activated ? "voice-active" : ""}`} role="dialog" aria-modal="true" aria-label="Inside an AI builder's words">
     <ModalClose close={close} />
     <button className="voice-mute" type="button" aria-label={muted ? "Unmute voice" : "Mute voice"} onClick={() => setMuted(!muted)}>{muted ? "⌁" : "◖"}</button>
-    <canvas ref={canvasRef} className="voice-canvas" onPointerMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); pointer.current = { x: (event.clientX - rect.left) / rect.width, y: (event.clientY - rect.top) / rect.height }; }} />
-    <div className="voice-stats"><b>IN MY WORDS</b><span>AI MENTIONS&nbsp;&nbsp;&nbsp; {141 + ticks}</span><span>IDEAS IN QUEUE&nbsp;&nbsp;&nbsp; {1223 + ticks * 2}</span><span>MINUTES STREAMED&nbsp;&nbsp;&nbsp; {446 + ticks}</span><span>TRACKS RECORDED&nbsp;&nbsp;&nbsp; {4 + ticks % 8}</span></div>
+    <canvas ref={canvasRef} className="voice-canvas" onPointerMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); pointer.current = { x: (event.clientX - rect.left) / rect.width, y: (event.clientY - rect.top) / rect.height }; setActivated(true); }} />
+    <img className="voice-modal-reference" src="/assets/voice-modal-active.png" alt="" aria-hidden="true" />
+    <div className="voice-stats"><b>IN MY WORDS</b><span>AI MENTIONS&nbsp;&nbsp;&nbsp; {141 + ticks}</span><span>MINUTES STREAMED&nbsp;&nbsp;&nbsp; {239 + ticks}</span><span>IDEAS IN QUEUE&nbsp;&nbsp;&nbsp; 1,200</span><span>TRACKS RECORDED&nbsp;&nbsp;&nbsp; 4</span></div>
   </div>;
 }
 
