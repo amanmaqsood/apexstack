@@ -364,11 +364,21 @@ const eyeCards = [
 function EyeModal({ close }: { close: () => void }) {
   const [depth, setDepth] = useState(0);
   const [ticks, setTicks] = useState(0);
+  const swipe = useRef({ active: false, y: 0 });
   useEffect(() => {
     const timer = window.setInterval(() => setTicks((value) => value + 1), 620);
     return () => window.clearInterval(timer);
   }, []);
-  return <div className="mind-modal mind-eyes" role="dialog" aria-modal="true" aria-label="Through an AI builder's eyes" onWheel={(event) => setDepth((value) => value + Math.sign(event.deltaY) * .7)}>
+  return <div className="mind-modal mind-eyes" role="dialog" aria-modal="true" aria-label="Through an AI builder's eyes" onWheel={(event) => setDepth((value) => value + Math.sign(event.deltaY) * .7)} onPointerDown={(event) => {
+    swipe.current = { active: true, y: event.clientY };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }} onPointerMove={(event) => {
+    if (!swipe.current.active) return;
+    const delta = swipe.current.y - event.clientY;
+    if (Math.abs(delta) < 8) return;
+    swipe.current.y = event.clientY;
+    setDepth((value) => value + delta / 52);
+  }} onPointerUp={() => { swipe.current.active = false; }}>
     <ModalClose close={close} />
     <div className="eye-stars" aria-hidden="true" />
     <div className="eye-card-field">{eyeCards.map((file, index) => {
