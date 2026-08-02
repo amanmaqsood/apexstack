@@ -188,6 +188,53 @@ function AsciiImage({ src, color = "#1b4dff", cols = 92, className = "", inverse
   return <canvas ref={canvasRef} className={className} aria-hidden="true" />;
 }
 
+function PixelDissolveImage({ src, className = "", cols = 72 }: { src: string; className?: string; cols?: number }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
+    const image = new Image();
+    let timer = 0;
+    image.src = src;
+    image.onload = () => {
+      const rows = Math.max(48, Math.round(cols * image.naturalHeight / image.naturalWidth));
+      canvas.width = cols;
+      canvas.height = rows;
+      const render = () => {
+        context.clearRect(0, 0, cols, rows);
+        context.imageSmoothingEnabled = false;
+        context.drawImage(image, 0, 0, cols, rows);
+        for (let y = 0; y < rows; y += 1) {
+          for (let x = 0; x < cols; x += 1) {
+            const edge = Math.abs(x / cols - .5) + Math.abs(y / rows - .52);
+            const probability = .17 + edge * .19 + (Math.sin(x * 2.1 + y * 1.7) + 1) * .045;
+            if (Math.random() < probability) context.clearRect(x, y, 1, 1);
+          }
+        }
+        timer = window.setTimeout(render, 110);
+      };
+      render();
+    };
+    return () => window.clearTimeout(timer);
+  }, [cols, src]);
+  return <canvas ref={canvasRef} className={className} aria-hidden="true" />;
+}
+
+function CustomCursor() {
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const move = (event: PointerEvent) => {
+      if (!ref.current || event.pointerType === "touch") return;
+      ref.current.style.transform = `translate3d(${event.clientX}px,${event.clientY}px,0)`;
+      ref.current.classList.add("active");
+    };
+    window.addEventListener("pointermove", move, { passive: true });
+    return () => window.removeEventListener("pointermove", move);
+  }, []);
+  return <span ref={ref} className="custom-cursor" aria-hidden="true" />;
+}
+
 function ScrollStage({ className = "", id, children }: { className?: string; id?: string; children: React.ReactNode }) {
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -245,7 +292,7 @@ function Hero({ ready }: { ready: boolean }) {
   return (
     <section id="hero" ref={ref} className={`hero ${ready ? "ready" : ""}`}>
       <div className="hero-grid" />
-      <h1><span>Hiring The Most </span><em><ScrambleText key={`hero-title-${hoveredPerson}`} text="Obsessed AI Builders" active={ready} /></em><br /><span>To Solve The Toughest Problems</span></h1>
+      <h1><span>Hiring The Most </span><em><ScrambleText text="Obsessed AI Builders" active={ready} /></em><br /><span>To Solve The Toughest Problems</span></h1>
       <a className="hero-apply" href={APPLY_URL} target="_blank" rel="noreferrer">Apply Now</a>
       <div className={`hero-scene hover-person-${hoveredPerson}`}>
         <img className="bg-layer" src="/assets/bg-layer.webp" alt="" />
@@ -255,6 +302,7 @@ function Hero({ ready }: { ready: boolean }) {
         <img className="hero-object book book-bottom" src="/assets/book-bottom.webp" alt="" /><img className="hero-object book book-middle" src="/assets/book-middle.webp" alt="" /><img className="hero-object book book-top" src="/assets/book-top.webp" alt="" /><img className="hero-object books-shadow" src="/assets/books-shadow.webp" alt="" />
         <img className="hero-object coffee-shadow" src="/assets/coffee-shadow.webp" alt="" /><img className="hero-object desk-coffee" src="/assets/coffee.webp" alt="" /><img className="hero-object desk-ipad" src="/assets/right-tablet.webp" alt="" />
         <img className="hero-object chat-cup-shadow" src="/assets/chat-gpt-cup-shadow.webp" alt="" /><img className="hero-object cup" src="/assets/chat-gpt-cup.webp" alt="" /><img className="hero-object mug-shadow" src="/assets/coffee-mug-shadow.webp" alt="" /><img className="hero-object coffee-mug" src="/assets/coffee-mug.webp" alt="" />
+        <PixelDissolveImage src="/assets/person-1.webp" className="hero-pixel pixel-one" /><PixelDissolveImage src="/assets/person-2.webp" className="hero-pixel pixel-two" /><PixelDissolveImage src="/assets/person-3.webp" className="hero-pixel pixel-three" />
         <AsciiImage src="/assets/person-1.webp" cols={60} color="#9aa7b9" className="hero-ascii hero-ascii-one" /><AsciiImage src="/assets/person-2.webp" cols={52} color="#91a5c8" className="hero-ascii hero-ascii-two" /><AsciiImage src="/assets/person-3.webp" cols={48} color="#8aa2c9" className="hero-ascii hero-ascii-three" />
         <button className="person-hover-zone zone-one" type="button" aria-label="Inspect builder one" onPointerEnter={() => setHoveredPerson(1)} onPointerLeave={() => setHoveredPerson(0)} />
         <button className="person-hover-zone zone-two" type="button" aria-label="Inspect builder two" onPointerEnter={() => setHoveredPerson(2)} onPointerLeave={() => setHoveredPerson(0)} />
@@ -337,8 +385,9 @@ function BrainModal({ close }: { close: () => void }) {
     return () => { window.cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
   }, []);
   const cardShift = (amount: number) => ({ transform: `translate3d(${shift * amount}px,${Math.sin(shift / 70) * amount * .18}px,0)` });
-  return <div className="mind-modal mind-head" role="dialog" aria-modal="true" aria-label="Inside an AI builder's brain">
+  return <div className={`mind-modal mind-head ${shift ? "brain-interacted" : ""}`} role="dialog" aria-modal="true" aria-label="Inside an AI builder's brain">
     <ModalClose close={close} />
+    <img className="brain-modal-reference" src="/assets/brain-modal-desktop.png" alt="" aria-hidden="true" />
     <canvas ref={canvasRef} className="brain-cloud" onPointerDown={(event) => { drag.current.active = true; drag.current.x = event.clientX; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={(event) => {
       if (!drag.current.active) return;
       const delta = event.clientX - drag.current.x;
@@ -630,5 +679,5 @@ function Footer() {
 export default function Home() {
   const [ready, setReady] = useState(false);
   const done = useCallback(() => setReady(true), []);
-  return <div className="site-shell">{!ready && <BootScreen done={done} />}<Navbar /><main><Hero ready={ready} /><Intro /><Eligibility /><Process /><Wins /><OtherRoles /></main><Footer /></div>;
+  return <div className="site-shell"><CustomCursor />{!ready && <BootScreen done={done} />}<Navbar /><main><Hero ready={ready} /><Intro /><Eligibility /><Process /><Wins /><OtherRoles /></main><Footer /></div>;
 }
