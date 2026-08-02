@@ -251,7 +251,10 @@ function Hero({ ready }: { ready: boolean }) {
         <img className="bg-layer" src="/assets/bg-layer.webp" alt="" />
         <img className="hero-person person-one" src="/assets/person-1.webp" alt="" /><img className="hero-object monitor" src="/assets/monitor.webp" alt="" /><img className="hero-object keyboard" src="/assets/keyboard.webp" alt="" />
         <img className="hero-person person-two" src="/assets/person-2.webp" alt="" /><img className="hero-object tablet" src="/assets/mid-tablet.webp" alt="" /><img className="hero-object pot" src="/assets/pot.webp" alt="" />
-        <img className="hero-person person-three" src="/assets/person-3.webp" alt="" /><img className="hero-object right-tablet" src="/assets/right-tablet.webp" alt="" /><img className="hero-object cup" src="/assets/chat-gpt-cup.webp" alt="" /><img className="table" src="/assets/table-surface.webp" alt="" />
+        <img className="hero-person person-three" src="/assets/person-3.webp" alt="" /><img className="hero-object right-tablet" src="/assets/right-tablet.webp" alt="" /><img className="table" src="/assets/table-surface.webp" alt="" />
+        <img className="hero-object book book-bottom" src="/assets/book-bottom.webp" alt="" /><img className="hero-object book book-middle" src="/assets/book-middle.webp" alt="" /><img className="hero-object book book-top" src="/assets/book-top.webp" alt="" /><img className="hero-object books-shadow" src="/assets/books-shadow.webp" alt="" />
+        <img className="hero-object coffee-shadow" src="/assets/coffee-shadow.webp" alt="" /><img className="hero-object desk-coffee" src="/assets/coffee.webp" alt="" /><img className="hero-object desk-ipad" src="/assets/right-tablet.webp" alt="" />
+        <img className="hero-object chat-cup-shadow" src="/assets/chat-gpt-cup-shadow.webp" alt="" /><img className="hero-object cup" src="/assets/chat-gpt-cup.webp" alt="" /><img className="hero-object mug-shadow" src="/assets/coffee-mug-shadow.webp" alt="" /><img className="hero-object coffee-mug" src="/assets/coffee-mug.webp" alt="" />
         <AsciiImage src="/assets/person-1.webp" cols={60} color="#9aa7b9" className="hero-ascii hero-ascii-one" /><AsciiImage src="/assets/person-2.webp" cols={52} color="#91a5c8" className="hero-ascii hero-ascii-two" /><AsciiImage src="/assets/person-3.webp" cols={48} color="#8aa2c9" className="hero-ascii hero-ascii-three" />
         <button className="person-hover-zone zone-one" type="button" aria-label="Inspect builder one" onPointerEnter={() => setHoveredPerson(1)} onPointerLeave={() => setHoveredPerson(0)} />
         <button className="person-hover-zone zone-two" type="button" aria-label="Inspect builder two" onPointerEnter={() => setHoveredPerson(2)} onPointerLeave={() => setHoveredPerson(0)} />
@@ -370,6 +373,7 @@ function EyeModal({ close }: { close: () => void }) {
     return () => window.clearInterval(timer);
   }, []);
   return <div className="mind-modal mind-eyes" role="dialog" aria-modal="true" aria-label="Through an AI builder's eyes" onWheel={(event) => setDepth((value) => value + Math.sign(event.deltaY) * .7)} onPointerDown={(event) => {
+    if ((event.target as HTMLElement).closest("button")) return;
     swipe.current = { active: true, y: event.clientY };
     event.currentTarget.setPointerCapture(event.pointerId);
   }} onPointerMove={(event) => {
@@ -444,6 +448,7 @@ function Eligibility() {
     <section ref={ref} id="eligibility" className={`eligibility ${visible ? "visible" : ""}`}>
       <div className="eligibility-stage">
         <canvas className="eligibility-field" aria-hidden="true" />
+        <img className="eligibility-reference" src="/assets/eligibility-desktop.png" alt="" aria-hidden="true" />
         <AsciiImage src="/assets/person-2.webp" color="#164cff" cols={164} className="eligibility-ascii" />
         <svg className="feature-lines" viewBox="0 0 1440 750" preserveAspectRatio="none" aria-hidden="true">
           <polyline points="154,354 496,354 566,430" /><polyline points="792,152 1045,185 1240,185" /><polyline points="752,302 920,386 1245,386" />
