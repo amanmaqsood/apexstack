@@ -30,6 +30,45 @@ function useInView<T extends HTMLElement>(threshold = 0.25) {
   return [ref, visible] as const;
 }
 
+function useMotionStage<T extends HTMLElement>(threshold = 0.2) {
+  const ref = useRef<T>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setVisible(true);
+    }, { threshold });
+    observer.observe(node);
+
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const rect = node.getBoundingClientRect();
+      const vh = window.innerHeight || 1;
+      const progress = Math.max(0, Math.min(1, (vh - rect.top) / (vh + rect.height)));
+      const enter = Math.max(0, Math.min(1, (progress - 0.08) / 0.43));
+      const exit = Math.max(0, Math.min(1, (progress - 0.78) / 0.2));
+      node.style.setProperty("--motion", String(progress));
+      node.style.setProperty("--enter", String(enter));
+      node.style.setProperty("--exit", String(exit));
+      node.style.setProperty("--presence", String(enter * (1 - exit)));
+      node.dataset.phase = exit > 0.02 ? "exit" : enter < 0.98 ? "enter" : "hold";
+    };
+    const request = () => { if (!raf) raf = window.requestAnimationFrame(update); };
+    update();
+    window.addEventListener("scroll", request, { passive: true });
+    window.addEventListener("resize", request);
+    return () => {
+      observer.disconnect();
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", request);
+      window.removeEventListener("resize", request);
+    };
+  }, [threshold]);
+  return [ref, visible] as const;
+}
+
 function ScrambleText({ text, active = true, className = "" }: { text: string; active?: boolean; className?: string }) {
   const [shown, setShown] = useState(active ? "" : text);
   useEffect(() => {
@@ -64,7 +103,6 @@ function BootScreen({ done }: { done: () => void }) {
   return (
     <div className={`boot-screen phase-${phase}`} aria-hidden="true">
       <div className="boot-mark"><ScrambleText text="razorpay/ai" active={phase > 0} /><span className="boot-cursor" /></div>
-      <div className="boot-lines"><i /><i /><i /></div>
     </div>
   );
 }
@@ -201,13 +239,13 @@ function Intro() {
 }
 
 function Eligibility() {
-  const [ref, visible] = useInView<HTMLElement>(0.3);
+  const [ref, visible] = useMotionStage<HTMLElement>(0.18);
   const [modal, setModal] = useState<"head" | "eyes" | "mouth" | null>(null);
   return (
     <section ref={ref} id="eligibility" className={`eligibility ${visible ? "visible" : ""}`}>
       <div className="eligibility-stage">
         <canvas className="eligibility-field" aria-hidden="true" />
-        <AsciiImage src="/assets/person-3.webp" color="#164cff" cols={156} className="eligibility-ascii" />
+        <AsciiImage src="/assets/person-2.webp" color="#164cff" cols={164} className="eligibility-ascii" />
         <svg className="feature-lines" viewBox="0 0 1440 750" preserveAspectRatio="none" aria-hidden="true">
           <polyline points="154,354 496,354 566,430" /><polyline points="792,152 1045,185 1240,185" /><polyline points="752,302 920,386 1245,386" />
         </svg>
@@ -221,7 +259,7 @@ function Eligibility() {
       {modal && <div className={`mind-modal mind-${modal}`} role="dialog" aria-modal="true" aria-label="AI builder system view">
         <button type="button" className="modal-close" onClick={() => setModal(null)}><span>×</span> CLOSE</button>
         {modal === "eyes" && <><div className="eye-vortex" aria-hidden="true"><i /><i /><i /><i /></div><div className="modal-gesture"><b>◯</b>SCROLL</div></>}
-        {modal === "head" && <><div className="brain-face" aria-hidden="true">{`    +++######++++\n ++##############++\n+####  AI  MIND ####+\n#### /AGENT/LOOPS ####\n+####  BUILD SHIP ####+\n ++##############++\n    +++######++++`}</div><div className="brain-card card-ideas">Ideas At<br />2 AM</div><div className="brain-card card-audio"><small>● Now Playing</small><b>The Future Of<br />Everything In AI</b><span>▂▅▇▃▆▅▂</span></div><div className="brain-card card-rank"><small>● AI Leaderboard</small><span>#1 Claude&nbsp;&nbsp;&nbsp;94.2</span><span>#2 Gemini&nbsp;&nbsp;&nbsp;92.7</span><span>#3 ChatGPT&nbsp;&nbsp;90.1</span></div><div className="mind-stats"><b>IN MY BRAIN</b><span>LEFT HEMISPHERE&nbsp;&nbsp;&nbsp;RIGHT HEMISPHERE</span><span>TASKS RUNNING&nbsp; 35&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;675</span><span>TO BE STARTED 5007&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;897</span></div><div className="modal-gesture">↔<br />DRAG</div></>}
+        {modal === "head" && <><AsciiImage src="/assets/person-2.webp" color="#d5d5d5" cols={170} className="brain-ascii-head" /><div className="brain-card card-token"><small>TOKENS</small><span>SPENT: $1,490&nbsp;&nbsp;&nbsp; LIMIT: $5,000</span><b>────────────</b><span>You&apos;re getting close to your limit</span></div><div className="brain-card card-ideas">Ideas At<br />2 AM</div><div className="brain-card card-audio"><small>● Now Playing</small><b>The Future Of<br />Everything In AI</b><span>▂▅▇▃▆▅▂</span></div><div className="brain-card card-rank"><small>● AI Leaderboard</small><span>#1 Claude&nbsp;&nbsp;&nbsp;94.2</span><span>#2 Gemini&nbsp;&nbsp;&nbsp;92.7</span><span>#3 ChatGPT&nbsp;&nbsp;90.1</span><span>#4 Grok&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;88.4</span></div><div className="brain-card card-future">Things That<br />Could Be AI</div><div className="mind-stats"><b>IN MY BRAIN</b><span>LEFT HEMISPHERE&nbsp;&nbsp;&nbsp;RIGHT HEMISPHERE</span><span>TASKS RUNNING&nbsp; 42&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;647</span><span>TO BE STARTED 5002&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;892</span></div><div className="modal-gesture">↔<br />DRAG</div></>}
         {modal === "mouth" && <><div className="voice-terrain" aria-hidden="true"><i /><i /><i /><i /></div><button className="voice-mute" type="button" aria-label="Mute voice">⌕</button></>}
       </div>}
     </section>
@@ -231,17 +269,24 @@ function Eligibility() {
 function ProcessMonitor() {
   const [channel, setChannel] = useState(0);
   const [glitch, setGlitch] = useState(false);
-  const channels = ["", "HUMAN / BUILDER", "CAT AGENT", "RAT LOOP", "NIGHT SHIFT"];
+  const channels = [
+    { label: "", video: "" },
+    { label: "HUMAN / BUILDER", video: "https://cdn.razorpay.com/static/assets/ai-builders/images/channel-guy.mp4" },
+    { label: "INTERVIEW LOOP", video: "https://cdn.razorpay.com/static/assets/ai-builders/images/channel-interview-loop.mp4" },
+    { label: "CAT AGENT", video: "https://cdn.razorpay.com/static/assets/ai-builders/images/channel-cat-1.mp4" },
+    { label: "RAT LOOP", video: "https://cdn.razorpay.com/static/assets/ai-builders/images/channel-rat.mp4" },
+  ];
   const cycle = () => {
     if (glitch) return;
     setGlitch(true);
-    window.setTimeout(() => { setChannel((channel + 1) % channels.length); setGlitch(false); }, 420);
+    window.setTimeout(() => setChannel((channel + 1) % channels.length), 260);
+    window.setTimeout(() => setGlitch(false), 620);
   };
-  return <button type="button" className={`screen-channel channel-${channel} ${glitch ? "glitching" : ""}`} onClick={cycle} aria-label="Change the channel on the monitor"><span className="screen-hint">CLICK HERE</span><span className="screen-noise" />{channel > 0 && <img className="screen-figure" src={channel === 1 ? "/assets/person-1.webp" : channel === 2 ? "/assets/chat-gpt-cup.webp" : channel === 3 ? "/assets/pot.webp" : "/assets/person-3.webp"} alt="" />}<span className="screen-subject">{channels[channel]}</span><span className="screen-click">CLICK</span></button>;
+  return <button type="button" className={`screen-channel channel-${channel} ${glitch ? "glitching" : ""}`} onClick={cycle} aria-label="Change the channel on the monitor"><span className="screen-hint">CLICK HERE</span><span className="screen-noise" />{channel > 0 && <video className="screen-video" key={channels[channel].video} src={channels[channel].video} autoPlay muted loop playsInline />}<span className="screen-subject">{channels[channel].label}</span><span className="screen-click">CLICK</span></button>;
 }
 
 function Process() {
-  const [ref, visible] = useInView<HTMLElement>(0.3);
+  const [ref, visible] = useMotionStage<HTMLElement>(0.18);
   return (
     <section ref={ref} id="process" className={`process ${visible ? "visible" : ""}`}>
       <div className="process-visual">
@@ -254,7 +299,7 @@ function Process() {
 
 function Wins() {
   const [active, setActive] = useState(2);
-  const [ref, visible] = useInView<HTMLElement>(0.18);
+  const [ref, visible] = useMotionStage<HTMLElement>(0.12);
   const move = (delta: number) => setActive((active + delta + wins.length) % wins.length);
   const previous = (active - 1 + wins.length) % wins.length;
   const next = (active + 1) % wins.length;
@@ -265,7 +310,6 @@ function Wins() {
         <img className="neighbor-card neighbor-left" src={wins[previous].image} alt="" /><img className="neighbor-card neighbor-right" src={wins[next].image} alt="" />
         <article className="win-slide active" key={wins[active].brand}><img src={wins[active].image} alt="" /><div className="win-copy"><p>{wins[active].brand}</p><h3>{wins[active].headline}</h3>{wins[active].href && <a href={wins[active].href} target="_blank" rel="noreferrer">Know More</a>}</div></article>
         <button className="arrow left" type="button" onClick={() => move(-1)} aria-label="Previous AI win">‹</button><button className="arrow right" type="button" onClick={() => move(1)} aria-label="Next AI win">›</button>
-        <div className="carousel-dots" aria-label="AI wins slides">{wins.map((win, index) => <button key={win.brand} className={index === active ? "active" : ""} onClick={() => setActive(index)} aria-label={`Show ${win.brand}`} />)}</div>
       </div>
     </section>
   );
@@ -283,7 +327,8 @@ function DraggableChair({ className }: { className: string }) {
 }
 
 function OtherRoles() {
-  return <section className="other-roles"><div className="roles-bg" /><DraggableChair className="chair-zero" /><DraggableChair className="chair-one" /><DraggableChair className="chair-two" /><DraggableChair className="chair-three" /><DraggableChair className="chair-four" /><h2>Looking for Other Roles?</h2><a href="https://razorpay.com/careers/" target="_blank" rel="noreferrer">check out our careers page. ↗</a><span className="drag-note">DRAG TO EXPLORE</span></section>;
+  const [ref] = useMotionStage<HTMLElement>(0.1);
+  return <section ref={ref} className="other-roles"><div className="roles-bg" /><DraggableChair className="chair-zero" /><DraggableChair className="chair-one" /><DraggableChair className="chair-two" /><DraggableChair className="chair-three" /><DraggableChair className="chair-four" /><h2>Looking for Other Roles?</h2><a href="https://razorpay.com/careers/" target="_blank" rel="noreferrer">check out our careers page. ↗</a><span className="drag-note">DRAG TO EXPLORE</span></section>;
 }
 
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; color: string };
@@ -319,7 +364,7 @@ function ArcadeGame({ running, setRunning }: { running: boolean; setRunning: (va
       }
       if (running) { ctx.strokeStyle = fever ? colors[score % colors.length] : "#ececec"; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(paddleX - 70, h * 0.32); ctx.lineTo(paddleX + 70, h * 0.32); ctx.stroke(); }
       const idleGradient = ctx.createLinearGradient(0, h - 81, 0, h - 50); idleGradient.addColorStop(0, "#f0f2f6"); idleGradient.addColorStop(.22, "#d7dae0"); idleGradient.addColorStop(1, "#bfc2c8");
-      bricks.forEach((brick) => { if (brick.alive) { ctx.fillStyle = fever ? brick.color : idleGradient; ctx.fillRect(brick.x, h - 81, brick.w, 31); ctx.strokeStyle = "rgba(0,0,0,.7)"; ctx.lineWidth = 2; ctx.strokeRect(brick.x, h - 81, brick.w, 31); } ctx.fillStyle = "#d8d8d8"; ctx.fillRect(brick.x, h - 42, brick.w, 40); ctx.strokeStyle = "rgba(0,0,0,.7)"; ctx.strokeRect(brick.x, h - 42, brick.w, 40); });
+      bricks.forEach((brick) => { if (brick.alive) { ctx.fillStyle = fever ? brick.color : idleGradient; ctx.fillRect(brick.x, h - 49, brick.w, 34); ctx.strokeStyle = "rgba(0,0,0,.72)"; ctx.lineWidth = 2; ctx.strokeRect(brick.x, h - 49, brick.w, 34); } });
       if (running) { const trail = 7; for (let i = trail; i > 0; i -= 1) { ctx.beginPath(); ctx.fillStyle = `rgba(255,255,255,${0.08 + (trail - i) * 0.035})`; ctx.arc(ball.x - ball.vx * dt * i * 0.65, ball.y - ball.vy * dt * i * 0.65, 3 + (trail - i) * 0.32, 0, Math.PI * 2); ctx.fill(); }
       ctx.beginPath(); ctx.shadowBlur = fever ? 28 : 10; ctx.shadowColor = fever ? colors[score % colors.length] : "white"; ctx.fillStyle = fever ? colors[score % colors.length] : "white"; ctx.arc(ball.x, ball.y, 7, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; }
       particles.forEach((p) => { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt * 0.85; ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 3, 3); }); ctx.globalAlpha = 1;
@@ -337,7 +382,8 @@ function ArcadeGame({ running, setRunning }: { running: boolean; setRunning: (va
 
 function Footer() {
   const [running, setRunning] = useState(false);
-  return <footer className={`footer ${running ? "game-running" : ""}`}><ArcadeGame running={running} setRunning={setRunning} /><div className="footer-title">Razorpay{running && <sup>×17</sup>}<br />/ai builders</div><button className="game-toggle" type="button" onClick={() => setRunning(!running)}><u>{running ? "STOP" : "PLAY"}</u> this game,<br />Bet you can win.</button><p className="copyright">Copyright © Razorpay</p><div className="socials"><a href="https://www.instagram.com/razorpay/">Instagram</a><span>|</span><a href="https://x.com/razorpay">X</a><span>|</span><a href="https://www.linkedin.com/company/razorpay/">LinkedIn</a><span>|</span><a href="https://razorpay.com/">www.razorpay.com</a></div></footer>;
+  const [ref, visible] = useInView<HTMLElement>(0.16);
+  return <footer ref={ref} className={`footer ${running ? "game-running" : ""}`}><ArcadeGame running={running} setRunning={setRunning} /><div className="footer-title"><ScrambleText text="Razorpay" active={visible} />{running && <sup>×17</sup>}<br /><ScrambleText text="/ai builders" active={visible} /></div><button className="game-toggle" type="button" onClick={() => setRunning(!running)}><u>{running ? "STOP" : "PLAY"}</u> this game,<br />Bet you can win.</button><p className="copyright">Copyright © Razorpay</p><div className="socials"><a href="https://www.instagram.com/razorpay/">Instagram</a><span>|</span><a href="https://x.com/razorpay">X</a><span>|</span><a href="https://www.linkedin.com/company/razorpay/">LinkedIn</a><span>|</span><a href="https://razorpay.com/">www.razorpay.com</a></div></footer>;
 }
 
 export default function Home() {
