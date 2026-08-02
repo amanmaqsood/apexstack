@@ -12,13 +12,13 @@ export const metadata: Metadata = {
     title: "AI Builder Jobs at Razorpay | Hiring AI Talent",
     description: "Hiring the most obsessed AI Builders to solve the toughest problems.",
     type: "website",
-    images: ["/og.png"],
+    images: ["/og-v2.png"],
   },
   twitter: {
     card: "summary_large_image",
     title: "AI Builder Jobs at Razorpay | Hiring AI Talent",
     description: "Hiring the most obsessed AI Builders to solve the toughest problems.",
-    images: ["/og.png"],
+    images: ["/og-v2.png"],
   },
 };
 
