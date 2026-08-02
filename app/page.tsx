@@ -72,7 +72,10 @@ function useMotionStage<T extends HTMLElement>(threshold = 0.2) {
 function ScrambleText({ text, active = true, className = "" }: { text: string; active?: boolean; className?: string }) {
   const [shown, setShown] = useState(active ? "" : text);
   useEffect(() => {
-    if (!active) return;
+    if (!active) {
+      setShown(text);
+      return;
+    }
     let frame = 0;
     const total = Math.max(26, text.length * 1.35);
     const id = window.setInterval(() => {
@@ -90,6 +93,34 @@ function ScrambleText({ text, active = true, className = "" }: { text: string; a
     return () => window.clearInterval(id);
   }, [active, text]);
   return <span className={className}>{shown || text.replace(/\S/g, "·")}</span>;
+}
+
+function HoverScramble({ text, className = "" }: { text: string; className?: string }) {
+  const [run, setRun] = useState(0);
+  return <span className={className} onPointerEnter={() => setRun((value) => value + 1)}><ScrambleText key={run} text={text} active={run > 0} /></span>;
+}
+
+function ScrambleLink({ href, children, className = "" }: { href: string; children: string; className?: string }) {
+  const [run, setRun] = useState(0);
+  return <a className={className} href={href} onPointerEnter={() => setRun((value) => value + 1)}><ScrambleText key={run} text={children} active={run > 0} /></a>;
+}
+
+function DraggableTile({ className, children }: { className: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const drag = useRef({ x: 0, y: 0, px: 0, py: 0, active: false });
+  return <div ref={ref} className={`code-card ${className}`} onPointerDown={(event) => {
+    drag.current.active = true;
+    drag.current.px = event.clientX;
+    drag.current.py = event.clientY;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }} onPointerMove={(event) => {
+    if (!drag.current.active || !ref.current) return;
+    drag.current.x += event.clientX - drag.current.px;
+    drag.current.y += event.clientY - drag.current.py;
+    drag.current.px = event.clientX;
+    drag.current.py = event.clientY;
+    ref.current.style.translate = `${drag.current.x}px ${drag.current.y}px`;
+  }} onPointerUp={() => { drag.current.active = false; }}><span className="tile-dot" />{children}<small>DRAG</small></div>;
 }
 
 function BootScreen({ done }: { done: () => void }) {
@@ -186,7 +217,7 @@ function Navbar() {
     <header className="nav-shell">
       <a className="brand" href="#hero" aria-label="Razorpay AI Builders home"><img src="/assets/razorpay-logo.svg" alt="Razorpay AI Builders" /></a>
       <nav className="desktop-nav" aria-label="Main navigation">
-        <a href="#eligibility">Eligibility</a><a href="#process">Process</a><a href="#wins">Our AI Wins</a>
+        <ScrambleLink href="#eligibility">Eligibility</ScrambleLink><ScrambleLink href="#process">Process</ScrambleLink><ScrambleLink href="#wins">Our AI Wins</ScrambleLink>
         <a className="nav-apply" href={APPLY_URL} target="_blank" rel="noreferrer">Apply Now</a>
       </nav>
       <button className="menu-toggle" type="button" aria-expanded={open} aria-label="Toggle menu" onClick={() => setOpen(!open)}><span /><span /></button>
@@ -197,6 +228,7 @@ function Navbar() {
 
 function Hero({ ready }: { ready: boolean }) {
   const ref = useRef<HTMLElement>(null);
+  const [hoveredPerson, setHoveredPerson] = useState(0);
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
@@ -213,15 +245,19 @@ function Hero({ ready }: { ready: boolean }) {
   return (
     <section id="hero" ref={ref} className={`hero ${ready ? "ready" : ""}`}>
       <div className="hero-grid" />
-      <h1><span>Hiring The Most </span><em><ScrambleText text="Obsessed AI Builders" active={ready} /></em><br /><span>To Solve The Toughest Problems</span></h1>
+      <h1><span>Hiring The Most </span><em><ScrambleText key={`hero-title-${hoveredPerson}`} text="Obsessed AI Builders" active={ready} /></em><br /><span>To Solve The Toughest Problems</span></h1>
       <a className="hero-apply" href={APPLY_URL} target="_blank" rel="noreferrer">Apply Now</a>
-      <div className="hero-scene" aria-hidden="true">
+      <div className={`hero-scene hover-person-${hoveredPerson}`}>
         <img className="bg-layer" src="/assets/bg-layer.webp" alt="" />
         <img className="hero-person person-one" src="/assets/person-1.webp" alt="" /><img className="hero-object monitor" src="/assets/monitor.webp" alt="" /><img className="hero-object keyboard" src="/assets/keyboard.webp" alt="" />
         <img className="hero-person person-two" src="/assets/person-2.webp" alt="" /><img className="hero-object tablet" src="/assets/mid-tablet.webp" alt="" /><img className="hero-object pot" src="/assets/pot.webp" alt="" />
         <img className="hero-person person-three" src="/assets/person-3.webp" alt="" /><img className="hero-object right-tablet" src="/assets/right-tablet.webp" alt="" /><img className="hero-object cup" src="/assets/chat-gpt-cup.webp" alt="" /><img className="table" src="/assets/table-surface.webp" alt="" />
-        <AsciiImage src="/assets/person-1.webp" cols={60} color="#9aa7b9" className="hero-ascii hero-ascii-one" /><AsciiImage src="/assets/person-2.webp" cols={52} color="#91a5c8" className="hero-ascii hero-ascii-two" />
-        <div className="code-card card-a">l9Kq<br />0x11<br />LLM</div><div className="code-card card-b">1011<br />AI_01<br />exec</div>
+        <AsciiImage src="/assets/person-1.webp" cols={60} color="#9aa7b9" className="hero-ascii hero-ascii-one" /><AsciiImage src="/assets/person-2.webp" cols={52} color="#91a5c8" className="hero-ascii hero-ascii-two" /><AsciiImage src="/assets/person-3.webp" cols={48} color="#8aa2c9" className="hero-ascii hero-ascii-three" />
+        <button className="person-hover-zone zone-one" type="button" aria-label="Inspect builder one" onPointerEnter={() => setHoveredPerson(1)} onPointerLeave={() => setHoveredPerson(0)} />
+        <button className="person-hover-zone zone-two" type="button" aria-label="Inspect builder two" onPointerEnter={() => setHoveredPerson(2)} onPointerLeave={() => setHoveredPerson(0)} />
+        <button className="person-hover-zone zone-three" type="button" aria-label="Inspect builder three" onPointerEnter={() => setHoveredPerson(3)} onPointerLeave={() => setHoveredPerson(0)} />
+        <DraggableTile className="card-a">J<br />iC+<br />kqa.<br />Cp=</DraggableTile><DraggableTile className="card-b">{`':ttl;\n-asapv\n1tshd\n+fxop`}</DraggableTile><DraggableTile className="card-c">exec<br />0x90<br />vUw0<br />LLM</DraggableTile>
+        <span className="hero-flower" aria-hidden="true">✳</span>
       </div>
     </section>
   );
@@ -232,10 +268,163 @@ function Intro() {
   const words = copy.split(" ");
   return (
     <ScrollStage className="intro">
-      <p>{words.map((word, index) => <span key={`${word}-${index}`} style={{ "--word": index / words.length } as React.CSSProperties}>{word} </span>)}</p>
-      <div className="manifesto"><span>/Unlimited Tokens</span><span>/Any Model</span><span>/Any Tool</span><span>/No Hierarchy</span><span>/Ship Fast</span></div>
+      <p>{words.map((word, index) => <span key={`${word}-${index}`} style={{ "--word": index / words.length } as React.CSSProperties}><HoverScramble text={`${word} `} /></span>)}</p>
+      <div className="manifesto"><HoverScramble text="/Unlimited Tokens" /><HoverScramble text="/Any Model" /><HoverScramble text="/Any Tool" /><HoverScramble text="/No Hierarchy" /><HoverScramble text="/Ship Fast" /></div>
     </ScrollStage>
   );
+}
+
+function ModalClose({ close }: { close: () => void }) {
+  return <button type="button" className="modal-close" onClick={close}><span>×</span> CLOSE</button>;
+}
+
+function BrainModal({ close }: { close: () => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const angle = useRef(-0.18);
+  const drag = useRef({ active: false, x: 0 });
+  const [shift, setShift] = useState(0);
+  const [pulse, setPulse] = useState(0);
+  useEffect(() => {
+    const timer = window.setInterval(() => setPulse((value) => value + 1), 900);
+    return () => window.clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
+    let raf = 0;
+    const points: { x: number; y: number; z: number; glow: number }[] = [];
+    for (let y = -1; y <= 1; y += .035) {
+      for (let x = -1.16; x <= 1.16; x += .035) {
+        const dome = (x / 1.12) ** 2 + ((y + .08) / .93) ** 2;
+        const lowerCut = y > .54 && Math.abs(x) < .16 + (y - .54) * .9;
+        const lobeNoise = Math.sin(x * 26) * .025 + Math.sin(y * 31) * .03;
+        if (dome < 1 + lobeNoise && !lowerCut && Math.random() > .22) {
+          const z = Math.sqrt(Math.max(0, 1 - Math.min(1, dome))) * (Math.random() > .5 ? 1 : -1);
+          points.push({ x, y, z, glow: Math.random() });
+        }
+      }
+    }
+    const resize = () => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = canvas.clientWidth * dpr;
+      canvas.height = canvas.clientHeight * dpr;
+      context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    const draw = (time: number) => {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      context.clearRect(0, 0, width, height);
+      const c = Math.cos(angle.current), s = Math.sin(angle.current);
+      points.forEach((point, index) => {
+        const rx = point.x * c - point.z * s;
+        const rz = point.x * s + point.z * c;
+        const scale = 1 + rz * .14;
+        const px = width * .49 + rx * width * .285 * scale;
+        const py = height * .47 + point.y * height * .37 * scale;
+        const twinkle = .42 + .38 * Math.sin(time * .0017 + index * .19) + point.glow * .2;
+        context.fillStyle = `rgba(235,235,235,${Math.max(.08, twinkle)})`;
+        context.fillRect(px, py, 1.5 + scale, 1.5 + scale);
+      });
+      raf = window.requestAnimationFrame(draw);
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    raf = window.requestAnimationFrame(draw);
+    return () => { window.cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
+  }, []);
+  const cardShift = (amount: number) => ({ transform: `translate3d(${shift * amount}px,${Math.sin(shift / 70) * amount * .18}px,0)` });
+  return <div className="mind-modal mind-head" role="dialog" aria-modal="true" aria-label="Inside an AI builder's brain">
+    <ModalClose close={close} />
+    <canvas ref={canvasRef} className="brain-cloud" onPointerDown={(event) => { drag.current.active = true; drag.current.x = event.clientX; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={(event) => {
+      if (!drag.current.active) return;
+      const delta = event.clientX - drag.current.x;
+      drag.current.x = event.clientX;
+      angle.current += delta * .006;
+      setShift((value) => Math.max(-90, Math.min(90, value + delta * .28)));
+    }} onPointerUp={() => { drag.current.active = false; }} />
+    <svg className="brain-links" viewBox="0 0 1470 956" preserveAspectRatio="none" aria-hidden="true"><path d="M302 316 L700 495 L1123 294" /><path d="M387 673 L710 498 L1200 652" /></svg>
+    <div className="brain-card card-token" style={cardShift(-.35)}><small>TOKENS</small><span>SPENT: ${(1490 + pulse * 3).toLocaleString()} &nbsp; LIMIT: $5,000</span><b>────────────</b><span>You&apos;re getting close to your limit</span></div>
+    <div className="brain-card card-ideas" style={cardShift(-.22)}>Ideas At<br />2 AM</div>
+    <div className="brain-card card-audio" style={cardShift(.2)}><small>● Now Playing</small><b>The Future Of<br />Everything In AI</b><span>▂▅▇▃▆▅▂</span></div>
+    <div className="brain-card card-rank" style={cardShift(-.16)}><small>● AI Leaderboard</small><span>#1 Claude&nbsp;&nbsp;&nbsp;94.2</span><span>#2 Gemini&nbsp;&nbsp;&nbsp;92.7</span><span>#3 ChatGPT&nbsp;&nbsp;90.1</span><span>#4 Grok&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;88.4</span></div>
+    <div className="brain-card card-future" style={cardShift(.31)}>Things That<br />Could Be AI</div>
+    <div className="brain-card card-products" style={cardShift(.42)}>Products<br />To Build</div>
+    <div className="brain-card card-terminal" style={cardShift(-.44)}><i /><i /><i /><pre>opening a startup idea{`\n`}training 10 models{`\n`}deploy successful - humans involved</pre></div>
+    <div className="mind-stats"><b>IN MY BRAIN</b><span>LEFT HEMISPHERE&nbsp;&nbsp;&nbsp;RIGHT HEMISPHERE</span><span>TASKS RUNNING&nbsp; {38 + pulse % 9}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{641 + pulse * 2}</span><span>TO BE STARTED {5410 + pulse * 7}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{909 + pulse}</span></div>
+    <div className="modal-gesture"><b>♧</b>DRAG</div>
+  </div>;
+}
+
+const eyeCards = [
+  "eye-goldfish.webp", "eye-forest2.webp", "eye-raj-harold.webp", "frame-2147240429.webp",
+  "frame-2147240438.webp", "frame-2147240439.webp", "frame-2147240442.webp", "frame-2147240441.webp",
+];
+
+function EyeModal({ close }: { close: () => void }) {
+  const [depth, setDepth] = useState(0);
+  const [ticks, setTicks] = useState(0);
+  useEffect(() => {
+    const timer = window.setInterval(() => setTicks((value) => value + 1), 620);
+    return () => window.clearInterval(timer);
+  }, []);
+  return <div className="mind-modal mind-eyes" role="dialog" aria-modal="true" aria-label="Through an AI builder's eyes" onWheel={(event) => setDepth((value) => value + Math.sign(event.deltaY) * .7)}>
+    <ModalClose close={close} />
+    <div className="eye-stars" aria-hidden="true" />
+    <div className="eye-card-field">{eyeCards.map((file, index) => {
+      const lane = ((index * 1.35 - depth) % 8 + 8) % 8;
+      const scale = .25 + lane * .105;
+      const x = Math.sin(index * 2.19) * 31;
+      const y = Math.cos(index * 1.47) * 24;
+      return <img key={file} src={`https://cdn.razorpay.com/static/assets/ai-builders/images/${file}`} alt="" style={{ left: `${50 + x}%`, top: `${48 + y}%`, opacity: Math.max(.16, 1 - Math.abs(4.8 - lane) * .16), transform: `translate(-50%,-50%) scale(${scale})`, zIndex: Math.round(lane * 10) }} />;
+    })}</div>
+    <div className="eye-stats"><b>THROUGH MY EYES</b><span>PIXELS TO PROCESS&nbsp;&nbsp;&nbsp; {388 + ticks}</span><span>WINDOWS DETECTED&nbsp;&nbsp;&nbsp; {12 + ticks % 9}</span><span>IDEAS ANALYZED&nbsp;&nbsp;&nbsp; {1431 + ticks * 3}</span></div>
+    <div className="modal-gesture eye-scroll"><b>◉</b>SCROLL</div>
+  </div>;
+}
+
+function VoiceModal({ close }: { close: () => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pointer = useRef({ x: .5, y: .5 });
+  const [muted, setMuted] = useState(false);
+  const [ticks, setTicks] = useState(0);
+  useEffect(() => {
+    const timer = window.setInterval(() => setTicks((value) => value + 1), 720);
+    return () => window.clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
+    let raf = 0;
+    const resize = () => { const dpr = Math.min(2, window.devicePixelRatio || 1); canvas.width = canvas.clientWidth * dpr; canvas.height = canvas.clientHeight * dpr; context.setTransform(dpr, 0, 0, dpr, 0, 0); };
+    const draw = (time: number) => {
+      const width = canvas.clientWidth, height = canvas.clientHeight;
+      context.clearRect(0, 0, width, height);
+      const horizon = height * .49;
+      for (let row = 0; row < 66; row += 1) {
+        const p = row / 65;
+        const y = horizon + p * p * height * .58;
+        const spacing = 3 + p * 8;
+        const wave = Math.sin(time * .0013 + row * .24) * (11 + p * 23);
+        for (let x = -20; x < width + 20; x += spacing) {
+          const influence = Math.max(0, 1 - Math.hypot(x / width - pointer.current.x, y / height - pointer.current.y) * 3.2);
+          const py = y + wave * Math.sin(x * .009 + row * .08) - influence * 32;
+          context.fillStyle = `rgba(245,245,245,${.17 + p * .7})`;
+          context.fillRect(x, py, 1.2 + p * 1.2, 1.2 + p * 1.2);
+        }
+      }
+      raf = window.requestAnimationFrame(draw);
+    };
+    resize(); window.addEventListener("resize", resize); raf = window.requestAnimationFrame(draw);
+    return () => { window.cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
+  }, []);
+  return <div className="mind-modal mind-mouth" role="dialog" aria-modal="true" aria-label="Inside an AI builder's words">
+    <ModalClose close={close} />
+    <button className="voice-mute" type="button" aria-label={muted ? "Unmute voice" : "Mute voice"} onClick={() => setMuted(!muted)}>{muted ? "⌁" : "◖"}</button>
+    <canvas ref={canvasRef} className="voice-canvas" onPointerMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); pointer.current = { x: (event.clientX - rect.left) / rect.width, y: (event.clientY - rect.top) / rect.height }; }} />
+    <div className="voice-stats"><b>IN MY WORDS</b><span>AI MENTIONS&nbsp;&nbsp;&nbsp; {141 + ticks}</span><span>IDEAS IN QUEUE&nbsp;&nbsp;&nbsp; {1223 + ticks * 2}</span><span>MINUTES STREAMED&nbsp;&nbsp;&nbsp; {446 + ticks}</span><span>TRACKS RECORDED&nbsp;&nbsp;&nbsp; {4 + ticks % 8}</span></div>
+  </div>;
 }
 
 function Eligibility() {
@@ -256,12 +445,9 @@ function Eligibility() {
         <p className="callout callout-left">SPEAKS IN PROMPTS<br />AND GITHUB LINKS</p><p className="callout callout-top">ALWAYS THINKING<br />HOW TO HARNESS AI</p><p className="callout callout-right">SEES EVERY WORKFLOW<br />AS AN AGENT LOOP</p>
         <h2><ScrambleText text="Is this " active={visible} /><em>you?</em></h2>
       </div>
-      {modal && <div className={`mind-modal mind-${modal}`} role="dialog" aria-modal="true" aria-label="AI builder system view">
-        <button type="button" className="modal-close" onClick={() => setModal(null)}><span>×</span> CLOSE</button>
-        {modal === "eyes" && <><div className="eye-vortex" aria-hidden="true"><i /><i /><i /><i /></div><div className="modal-gesture"><b>◯</b>SCROLL</div></>}
-        {modal === "head" && <><AsciiImage src="/assets/person-2.webp" color="#d5d5d5" cols={170} className="brain-ascii-head" /><div className="brain-card card-token"><small>TOKENS</small><span>SPENT: $1,490&nbsp;&nbsp;&nbsp; LIMIT: $5,000</span><b>────────────</b><span>You&apos;re getting close to your limit</span></div><div className="brain-card card-ideas">Ideas At<br />2 AM</div><div className="brain-card card-audio"><small>● Now Playing</small><b>The Future Of<br />Everything In AI</b><span>▂▅▇▃▆▅▂</span></div><div className="brain-card card-rank"><small>● AI Leaderboard</small><span>#1 Claude&nbsp;&nbsp;&nbsp;94.2</span><span>#2 Gemini&nbsp;&nbsp;&nbsp;92.7</span><span>#3 ChatGPT&nbsp;&nbsp;90.1</span><span>#4 Grok&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;88.4</span></div><div className="brain-card card-future">Things That<br />Could Be AI</div><div className="mind-stats"><b>IN MY BRAIN</b><span>LEFT HEMISPHERE&nbsp;&nbsp;&nbsp;RIGHT HEMISPHERE</span><span>TASKS RUNNING&nbsp; 42&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;647</span><span>TO BE STARTED 5002&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;892</span></div><div className="modal-gesture">↔<br />DRAG</div></>}
-        {modal === "mouth" && <><div className="voice-terrain" aria-hidden="true"><i /><i /><i /><i /></div><button className="voice-mute" type="button" aria-label="Mute voice">⌕</button></>}
-      </div>}
+      {modal === "head" && <BrainModal close={() => setModal(null)} />}
+      {modal === "eyes" && <EyeModal close={() => setModal(null)} />}
+      {modal === "mouth" && <VoiceModal close={() => setModal(null)} />}
     </section>
   );
 }
@@ -332,6 +518,8 @@ function OtherRoles() {
 }
 
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; color: string };
+type GameBall = { x: number; y: number; vx: number; vy: number; color: string; trail: { x: number; y: number }[] };
+type PowerUp = { x: number; y: number; vy: number; label: "CATCH" | "MEGA" | "LASER" | "MULTI"; color: string; life: number };
 function ArcadeGame({ running, setRunning }: { running: boolean; setRunning: (value: boolean) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointer = useRef(0.5);
@@ -339,37 +527,75 @@ function ArcadeGame({ running, setRunning }: { running: boolean; setRunning: (va
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d"); if (!ctx) return;
-    let raf = 0, last = performance.now(), score = 0, fever = false;
-    let ball = { x: canvas.clientWidth * 0.5, y: canvas.clientHeight * 0.45, vx: 260, vy: 310 };
+    let raf = 0, last = performance.now(), score = 0, hits = 0, fever = false, spawnClock = 0, laserClock = 0;
+    let balls: GameBall[] = [];
     let paddleX = canvas.clientWidth * 0.5;
     const particles: Particle[] = [];
+    const powerUps: PowerUp[] = [];
     let bricks: { x: number; w: number; alive: boolean; color: string }[] = [];
     const colors = ["#ff4260", "#ff9838", "#e1dc43", "#6fe36f", "#42d8c6", "#6c89ff", "#c850e8"];
+    const makeBall = (x: number, y: number, vx: number, vy: number, color = "#fff"): GameBall => ({ x, y, vx, vy, color, trail: [] });
     const resize = () => {
       const dpr = Math.min(2, window.devicePixelRatio || 1); const w = canvas.clientWidth; const h = canvas.clientHeight;
       canvas.width = w * dpr; canvas.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       bricks = Array.from({ length: 17 }, (_, i) => ({ x: i * (w / 17) + 1, w: w / 17 - 2, alive: true, color: colors[i % colors.length] }));
-      ball = { x: w * 0.5, y: h * 0.36, vx: 260, vy: 320 }; paddleX = w * 0.5;
+      balls = [makeBall(w * .5, h * .49, 245, 310)]; paddleX = w * 0.5;
     };
     const burst = (x: number, y: number, color: string) => { for (let i = 0; i < 20; i += 1) particles.push({ x, y, vx: (Math.random() - 0.5) * 280, vy: (Math.random() - 0.5) * 260, life: 1, color }); };
+    const applyPower = (power: PowerUp, ball: GameBall) => {
+      hits += power.label === "MEGA" ? 2 : 1;
+      score += 3;
+      if ((power.label === "MULTI" || power.label === "CATCH") && balls.length < (fever ? 5 : 3)) {
+        balls.push(makeBall(ball.x, ball.y, -ball.vx * .92, ball.vy * .95, colors[(hits + 2) % colors.length]));
+      }
+      if (power.label === "LASER") laserClock = 7.5;
+      burst(power.x, power.y, power.color);
+      power.life = 0;
+    };
     const draw = (now: number) => {
       const dt = Math.min(0.025, (now - last) / 1000); last = now; const w = canvas.clientWidth, h = canvas.clientHeight;
-      ctx.clearRect(0, 0, w, h); ctx.fillStyle = fever ? "rgba(10,18,15,.18)" : "rgba(12,12,12,.34)"; ctx.fillRect(0, 0, w, h);
+      ctx.clearRect(0, 0, w, h);
+      const wash = ctx.createLinearGradient(0, 0, w, h);
+      wash.addColorStop(0, fever ? "rgba(38,73,48,.32)" : "rgba(12,12,12,.4)"); wash.addColorStop(.5, fever ? "rgba(28,18,48,.2)" : "rgba(12,12,12,.28)"); wash.addColorStop(1, fever ? "rgba(30,74,72,.28)" : "rgba(12,12,12,.4)");
+      ctx.fillStyle = wash; ctx.fillRect(0, 0, w, h);
       if (running) {
-        paddleX += (pointer.current * w - paddleX) * 0.18; ball.x += ball.vx * dt; ball.y += ball.vy * dt;
-        if (ball.x < 8 || ball.x > w - 8) ball.vx *= -1; if (ball.y < 8) ball.vy = Math.abs(ball.vy);
-        const paddleY = h * 0.32; if (ball.y > paddleY - 12 && ball.y < paddleY + 12 && Math.abs(ball.x - paddleX) < 72 && ball.vy > 0) { ball.vy *= -1.025; ball.vx += (ball.x - paddleX) * 2.5; score += 1; burst(ball.x, ball.y, colors[score % colors.length]); }
-        if (ball.y > h - 38) { const hit = bricks.find((b) => b.alive && ball.x > b.x && ball.x < b.x + b.w); if (hit) { hit.alive = false; ball.vy = -Math.abs(ball.vy); score += 1; burst(ball.x, h - 34, hit.color); } else if (ball.y > h + 20) ball = { x: w * 0.5, y: h * 0.4, vx: 240, vy: 310 }; }
-        if (score >= 9) fever = true;
+        paddleX += (pointer.current * w - paddleX) * 0.2;
+        spawnClock += dt;
+        laserClock = Math.max(0, laserClock - dt);
+        if (spawnClock > 4.2) {
+          spawnClock = 0;
+          const labels: PowerUp["label"][] = ["CATCH", "MEGA", "LASER", "MULTI"];
+          const label = labels[(hits + Math.floor(Math.random() * labels.length)) % labels.length];
+          powerUps.push({ x: 40 + Math.random() * (w - 80), y: 86 + Math.random() * (h * .2), vy: 16 + Math.random() * 16, label, color: label === "CATCH" ? "#48dc91" : label === "MEGA" ? "#f5c338" : label === "LASER" ? "#ef4552" : "#557dff", life: 13 });
+        }
+        const paddleY = h * .53;
+        balls.forEach((ball) => {
+          ball.trail.unshift({ x: ball.x, y: ball.y }); if (ball.trail.length > 10) ball.trail.pop();
+          ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+          if (ball.x < 7 || ball.x > w - 7) ball.vx *= -1;
+          if (ball.y < 86) ball.vy = Math.abs(ball.vy);
+          if (ball.y > paddleY - 14 && ball.y < paddleY + 14 && Math.abs(ball.x - paddleX) < (fever ? 96 : 74) && ball.vy > 0) {
+            ball.vy = -Math.abs(ball.vy) * 1.018; ball.vx += (ball.x - paddleX) * 2.35; score += 1; hits += 1; ball.color = fever ? colors[hits % colors.length] : "#fff"; burst(ball.x, ball.y, ball.color);
+          }
+          powerUps.forEach((power) => { if (power.life > 0 && Math.hypot(power.x - ball.x, power.y - ball.y) < 24) applyPower(power, ball); });
+          if (ball.y > h - 44) {
+            const brick = bricks.find((item) => item.alive && ball.x > item.x && ball.x < item.x + item.w);
+            if (brick) { brick.alive = false; ball.vy = -Math.abs(ball.vy); score += 1; hits += 1; burst(ball.x, h - 38, brick.color); }
+            else if (ball.y > h + 24) { ball.x = paddleX; ball.y = paddleY + 40; ball.vx = (Math.random() > .5 ? 1 : -1) * (245 + hits * 3); ball.vy = 315; }
+          }
+        });
+        powerUps.forEach((power) => { power.y += power.vy * dt; power.life -= dt; if (power.y > h - 60) power.life = 0; });
+        fever = hits >= 14;
       }
-      if (running) { ctx.strokeStyle = fever ? colors[score % colors.length] : "#ececec"; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(paddleX - 70, h * 0.32); ctx.lineTo(paddleX + 70, h * 0.32); ctx.stroke(); }
+      if (running) { ctx.strokeStyle = fever ? colors[hits % colors.length] : "#ececec"; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(paddleX - (fever ? 96 : 74), h * .53); ctx.lineTo(paddleX + (fever ? 96 : 74), h * .53); ctx.stroke(); }
       const idleGradient = ctx.createLinearGradient(0, h - 81, 0, h - 50); idleGradient.addColorStop(0, "#f0f2f6"); idleGradient.addColorStop(.22, "#d7dae0"); idleGradient.addColorStop(1, "#bfc2c8");
       bricks.forEach((brick) => { if (brick.alive) { ctx.fillStyle = fever ? brick.color : idleGradient; ctx.fillRect(brick.x, h - 49, brick.w, 34); ctx.strokeStyle = "rgba(0,0,0,.72)"; ctx.lineWidth = 2; ctx.strokeRect(brick.x, h - 49, brick.w, 34); } });
-      if (running) { const trail = 7; for (let i = trail; i > 0; i -= 1) { ctx.beginPath(); ctx.fillStyle = `rgba(255,255,255,${0.08 + (trail - i) * 0.035})`; ctx.arc(ball.x - ball.vx * dt * i * 0.65, ball.y - ball.vy * dt * i * 0.65, 3 + (trail - i) * 0.32, 0, Math.PI * 2); ctx.fill(); }
-      ctx.beginPath(); ctx.shadowBlur = fever ? 28 : 10; ctx.shadowColor = fever ? colors[score % colors.length] : "white"; ctx.fillStyle = fever ? colors[score % colors.length] : "white"; ctx.arc(ball.x, ball.y, 7, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; }
+      if (running) balls.forEach((ball) => { ball.trail.forEach((point, index) => { ctx.beginPath(); ctx.fillStyle = fever ? `${ball.color}${Math.max(12, 62 - index * 5).toString(16)}` : `rgba(255,255,255,${Math.max(.03,.22-index*.018)})`; ctx.arc(point.x, point.y, Math.max(1.5, 6 - index * .38), 0, Math.PI * 2); ctx.fill(); }); ctx.beginPath(); ctx.shadowBlur = fever ? 30 : 11; ctx.shadowColor = ball.color; ctx.fillStyle = ball.color; ctx.arc(ball.x, ball.y, fever ? 8 : 7, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; });
+      powerUps.forEach((power) => { if (power.life <= 0) return; ctx.fillStyle = power.color; ctx.fillRect(power.x - 19, power.y - 6, 38, 12); ctx.fillStyle = "#071008"; ctx.font = "700 7px ui-monospace,monospace"; ctx.textAlign = "center"; ctx.fillText(power.label, power.x, power.y + 3); ctx.textAlign = "left"; });
+      if (laserClock > 0) { ctx.strokeStyle = "rgba(255,55,70,.72)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(paddleX, h * .53); ctx.lineTo(paddleX, h - 49); ctx.stroke(); }
       particles.forEach((p) => { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt * 0.85; ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 3, 3); }); ctx.globalAlpha = 1;
       for (let i = particles.length - 1; i >= 0; i -= 1) if (particles[i].life <= 0) particles.splice(i, 1);
-      if (running) { ctx.font = "11px ui-monospace, monospace"; ctx.fillStyle = fever ? colors[(score + 2) % colors.length] : "#ff3a4d"; ctx.fillText(`LASER ${Math.max(0, 8.4 - score * 0.28).toFixed(1)}s`, Math.max(8, paddleX - 70), h * 0.32 - 13); ctx.fillStyle = "rgba(255,255,255,.45)"; ctx.fillText(`x${Math.max(1, score)}`, 20, 45); }
+      if (running) { ctx.font = "10px ui-monospace, monospace"; ctx.fillStyle = fever ? colors[(hits + 2) % colors.length] : "#ff3a4d"; ctx.fillText(`MULTI ${balls.length}x · LASER ${laserClock.toFixed(1)}s · CATCH ${Math.max(0, 8.4 - hits * .08).toFixed(1)}s`, Math.max(8, paddleX - 80), h * .53 - 15); ctx.font = "700 18px ui-monospace,monospace"; ctx.fillStyle = colors[(hits + 3) % colors.length]; ctx.fillText(`x${Math.max(1, hits)}${hits > 10 ? "!!" : ""}`, 26 + (hits * 61) % Math.max(80, w - 120), h * .68 + Math.sin(hits) * 60); }
       if (fever) { ctx.font = "700 58px Inter, sans-serif"; ctx.fillStyle = "rgba(206,255,92,.72)"; ctx.textAlign = "center"; ctx.fillText("FEVER MODE", w / 2, h * 0.52); ctx.textAlign = "left"; }
       raf = requestAnimationFrame(draw);
     };
@@ -383,7 +609,7 @@ function ArcadeGame({ running, setRunning }: { running: boolean; setRunning: (va
 function Footer() {
   const [running, setRunning] = useState(false);
   const [ref, visible] = useInView<HTMLElement>(0.16);
-  return <footer ref={ref} className={`footer ${running ? "game-running" : ""}`}><ArcadeGame running={running} setRunning={setRunning} /><div className="footer-title"><ScrambleText text="Razorpay" active={visible} />{running && <sup>×17</sup>}<br /><ScrambleText text="/ai builders" active={visible} /></div><button className="game-toggle" type="button" onClick={() => setRunning(!running)}><u>{running ? "STOP" : "PLAY"}</u> this game,<br />Bet you can win.</button><p className="copyright">Copyright © Razorpay</p><div className="socials"><a href="https://www.instagram.com/razorpay/">Instagram</a><span>|</span><a href="https://x.com/razorpay">X</a><span>|</span><a href="https://www.linkedin.com/company/razorpay/">LinkedIn</a><span>|</span><a href="https://razorpay.com/">www.razorpay.com</a></div></footer>;
+  return <footer ref={ref} className={`footer ${running ? "game-running" : ""}`}><ArcadeGame running={running} setRunning={setRunning} /><div className="footer-title"><ScrambleText text="Razorpay" active={visible} /><br /><ScrambleText text="/ai builders" active={visible} /></div><button className="game-toggle" type="button" onClick={() => setRunning(!running)}><u>{running ? "STOP" : "PLAY"}</u> this game,<br />Bet you can win.</button><p className="copyright">Copyright © Razorpay</p><div className="socials"><a href="https://www.instagram.com/razorpay/">Instagram</a><span>|</span><a href="https://x.com/razorpay">X</a><span>|</span><a href="https://www.linkedin.com/company/razorpay/">LinkedIn</a><span>|</span><a href="https://razorpay.com/">www.razorpay.com</a></div></footer>;
 }
 
 export default function Home() {
