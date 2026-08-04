@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AI Builder Jobs at Razorpay | Hiring AI Talent",
+  title: "AI Builder Jobs at ApexStack | Hiring AI Talent",
   description:
     "Join Razorpay as an AI Builder and work on cutting-edge AI products, automation, and fintech innovation.",
   icons: {
